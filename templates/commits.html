@@ -27,26 +27,27 @@
     <div id="chart_div"></div>
 
     <script>
+        // Charger la librairie Google Charts
         google.charts.load('current', { packages: ['corechart'] });
         google.charts.setOnLoadCallback(drawChart);
 
         async function drawChart() {
             try {
-                // Récupérer les données des commits depuis la route Flask
+                // Appeler l'API interne Flask pour récupérer les données des commits
                 const response = await fetch('/commits-data');
                 const commitData = await response.json();
 
-                // Créer un DataTable pour Google Charts
+                // Préparer les données pour le graphique
                 const data = new google.visualization.DataTable();
                 data.addColumn('string', 'Minute');
                 data.addColumn('number', 'Nombre de Commits');
 
-                // Ajouter les données des commits dans le DataTable
+                // Ajouter les données des commits au graphique
                 for (let minute = 0; minute < 60; minute++) {
                     data.addRow([minute.toString(), commitData[minute] || 0]);
                 }
 
-                // Options de configuration du graphique
+                // Définir les options du graphique
                 const options = {
                     title: 'Nombre de Commits par Minute',
                     hAxis: { title: 'Minutes', format: '00' },
