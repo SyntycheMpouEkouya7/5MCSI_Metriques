@@ -2,68 +2,84 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Graphique des Commits par Minute</title>
+    <title>Commits par Minute</title>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f4f7f8;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
             margin: 0;
+            padding: 0;
         }
-
-        #chart_div {
-            width: 80%;
-            height: 500px;
+        .container {
+            width: 90%;
+            margin: 50px auto;
+        }
+        h1 {
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <div id="chart_div"></div>
 
-    <script>
-        // Charger la librairie Google Charts
-        google.charts.load('current', { packages: ['corechart'] });
-        google.charts.setOnLoadCallback(drawChart);
+<div class="container">
+    <h1>Nombre de commits par minute</h1>
+    <div id="chart_div" style="width: 100%; height: 500px;"></div>
+</div>
 
-        async function drawChart() {
-            try {
-                // Appeler l'API interne Flask pour récupérer les données des commits
-                const response = await fetch('/commits-data');
-                const commitData = await response.json();
+<script type="text/javascript">
+    google.charts.load('current', {packages: ['corechart']});
+    google.charts.setOnLoadCallback(drawChart);
 
-                // Préparer les données pour le graphique
-                const data = new google.visualization.DataTable();
-                data.addColumn('string', 'Minute');
-                data.addColumn('number', 'Nombre de Commits');
+    function drawChart() {
+        // Récupération des commits via l'API GitHub
+        fetch('https://api.github.com/repos/Eliashnf/5MCSI_Metriques/commits')
+            .then(response => response.json())
+            .then(data => {
+                const commitsByMinute = {};
 
-                // Ajouter les données des commits au graphique
-                for (let minute = 0; minute < 60; minute++) {
-                    data.addRow([minute.toString(), commitData[minute] || 0]);
-                }
+                // Parcourir chaque commit et extraire la date
+                Promise.all(data.map(commitData => {
+                    const commitDate = commitData.commit.author.date;
+                    
+                    // Appel à l'API Flask pour extraire les minutes du commit
+                    return fetch(`/extract-minutes/${encodeURIComponent(commitDate)}`)
+                        .then(response => response.json())
+                        .then(result => {
+                            const minute = result.minutes;
 
-                // Définir les options du graphique
-                const options = {
-                    title: 'Nombre de Commits par Minute',
-                    hAxis: { title: 'Minutes', format: '00' },
-                    vAxis: { title: 'Nombre de Commits' },
-                    legend: { position: 'none' },
-                    bar: { groupWidth: '75%' },
-                    colors: ['#6c63ff']
-                };
+                            // Compter le nombre de commits par minute
+                            if (!commitsByMinute[minute]) {
+                                commitsByMinute[minute] = 1;
+                            } else {
+                                commitsByMinute[minute]++;
+                            }
+                        });
+                })).then(() => {
+                    // Préparer les données pour le graphique
+                    const dataArray = [['Minute', 'Commits']];
+                    for (const minute in commitsByMinute) {
+                        dataArray.push([minute, commitsByMinute[minute]]);
+                    }
 
-                // Dessiner le graphique dans le div spécifié
-                const chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
-                chart.draw(data, options);
-            } catch (error) {
-                console.error('Erreur lors du chargement des données des commits :', error);
-            }
-        }
-    </script>
+                    var dataTable = google.visualization.arrayToDataTable(dataArray);
+
+                    var options = {
+                        title: 'Nombre de commits minute par minute',
+                        hAxis: {title: 'Minute', slantedText: true, slantedTextAngle: 45},
+                        vAxis: {title: 'Nombre de commits'},
+                        legend: {position: 'none'},
+                        backgroundColor: '#f1f8e9'
+                    };
+
+                    var chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
+                    chart.draw(dataTable, options);
+                });
+            })
+            .catch(error => console.error('Erreur lors de la récupération des données :', error));
+    }
+</script>
+
 </body>
 </html>
