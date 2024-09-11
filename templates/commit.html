@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graphique des Commits</title>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #chart_div {
+            width: 80%;
+            height: 500px;
+        }
+    </style>
+</head>
+<body>
+    <div id="chart_div"></div>
+
+    <script>
+        google.charts.load('current', { packages: ['corechart'] });
+        google.charts.setOnLoadCallback(drawChart);
+
+        async function fetchCommits() {
+            try {
+                const response = await fetch('https://api.github.com/repos/OpenRSI/5MCSI_Metriques/commits');
+                const commits = await response.json();
+                return commits.map(commit => commit.commit.author.date);
+            } catch (error) {
+                console.error('Erreur lors de la récupération des commits :', error);
+                return [];
+            }
+        }
+
+        function extractMinutes(dateString) {
+            const date = new Date(dateString);
+            return date.getMinutes();
+        }
+
+        async function drawChart() {
+            const commitDates = await fetchCommits();
+            const minuteCounts = Array(60).fill(0); // Tableau pour compter les commits par minute de 0 à 59
+
+            commitDates.forEach(date => {
+                const minutes = extractMinutes(date);
+                minuteCounts[minutes]++; // Incrémente le compteur pour la minute correspondante
+            });
+
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Minute');
+            data.addColumn('number', 'Nombre de Commits');
+
+            // Ajoute les données au tableau
+            minuteCounts.forEach((count, minute) => {
+                data.addRow([minute.toString(), count]);
+            });
+
+            const options = {
+                title: 'Nombre de Commits par Minute',
+                hAxis: { title: 'Minutes', format: '00' },
+                vAxis: { title: 'Nombre de Commits' },
+                legend: { position: 'none' },
+                bar: { groupWidth: '75%' },
+                colors: ['#6c63ff']
+            };
+
+            const chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
+            chart.draw(data, options);
+        }
+    </script>
+</body>
+</html>
