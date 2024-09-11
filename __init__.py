@@ -13,7 +13,7 @@ def MaPremiereAPI():
                                                                                                                                        
 @app.route('/')
 def hello_world():
-    return render_template('hello.html') #comm2
+    return render_template('hello.html') #comm
   
 if __name__ == "__main__":
   app.run(debug=True)
